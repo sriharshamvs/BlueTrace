@@ -13,12 +13,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
 browser = None
-timeout = 5
+timeout = 15
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-s","--server", help="Big Blue Button Server URL")
+parser.add_argument("-sc","--sc", help="XVFB")
 parser.add_argument("-p","--secret", help="Big Blue Button Secret")
 parser.add_argument("-i","--id", help="Big Blue Button Meeting ID")
 parser.add_argument("-m","--moderator", help="Join the meeting as moderator",action="store_true")
@@ -42,7 +43,7 @@ def set_up():
     options.add_argument('--disable-infobars') 
     options.add_argument('--no-sandbox') 
     options.add_argument('--kiosk') 
-    options.add_argument('--window-size=1280,720')
+    options.add_argument('--window-size=1360,768')
     options.add_argument('--window-position=0,0')
     options.add_experimental_option("excludeSwitches", ['enable-automation']);   
     #options.add_argument('--shm-size=1gb') 
@@ -80,10 +81,16 @@ def watch():
         time.sleep(60)
 
 def stream():
-    logging.info('Starting Stream with cmd: ffmpeg -fflags +igndts -f x11grab -s 1280x720 -r 24 -draw_mouse 0 -i :%d -f alsa -i pulse -ac 2 -preset ultrafaset -crf 0 -pix_fmt yuv420p -s 1280x720 -c:a aac -b:a 160k -ar 44100 -threads 0 -f flv "%s"' % (122, args.target))
-    ffmpeg_stream = 'ffmpeg -fflags +igndts -f x11grab -s 1280x720 -r 24 -draw_mouse 0 -i :%d -f alsa -i pulse -ac 2 -preset ultrafaset -pix_fmt yuv420p -s 1280x720 -c:a aac -b:a 160k -ar 44100 -threads 0 -f flv "%s"' % (122, args.target)
-    ffmpeg_args = shlex.split(ffmpeg_stream)
-    p = subprocess.Popen(ffmpeg_args)
+#    logging.info('Starting Stream with cmd: ffmpeg -fflags +igndts -f x11grab -s 1280x720 -r 24 -draw_mouse 0 -i :%d -f alsa -i pulse -ac 2 -preset ultrafaset -crf 0 -pix_fmt yuv420p -s 1280x720 -c:a aac -b:a 160k -ar 44100 -threads 0 -f flv "%s"' % (122, args.target))
+    sc = int(args.sc)
+    if os.path.exists('ffmpeg.log'):
+        os.remove('ffmpeg.log')
+    ffmpeg_stream = f'/usr/bin/ffmpeg  -f x11grab -s 1360x768 -draw_mouse 0 -i :{sc} -f pulse -ac 2 -i default -codec:v libx264 -pix_fmt yuv420p -preset veryfast  -g 60 -codec:a aac -b:a 128k -ar 44100 -af "highpass=f=200, lowpass=f=3000" -strict experimental -f flv "{args.target}"'
+    logging.info(ffmpeg_stream)
+#    ffmpeg_stream = 'ffmpeg -fflags +igndts -f x11grab -s 1280x720 -r 24 -draw_mouse 0 -i :%d -f alsa -i pulse -ac 2 -preset ultrafaset -pix_fmt yuv420p -s 1280x720 -c:a aac -b:a 160k -ar 44100 -threads 0 -f flv "%s"' % (122, args.target)
+    with open('ffmpeg.log', 'w') as f:
+        ffmpeg_args = shlex.split(ffmpeg_stream)
+        p = subprocess.Popen(ffmpeg_args, stdout=f, stderr = f)
 
 
 

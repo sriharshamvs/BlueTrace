@@ -1,2 +1,5 @@
 selenium
 bigbluebutton-api-python
+setuptools
+wheel
+psutil
