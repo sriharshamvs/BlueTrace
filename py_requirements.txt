@@ -1,5 +1,4 @@
 selenium
 bigbluebutton-api-python
-setuptools
-wheel
+websockets
 psutil
