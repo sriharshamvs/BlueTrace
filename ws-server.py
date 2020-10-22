@@ -9,6 +9,7 @@ import subprocess, shlex
 import os
 import signal
 
+from websockets.exceptions import ConnectionClosed
 
 import psutil
 
@@ -89,7 +90,12 @@ cwebsockets = []
 async def handle_websocket(websocket, path):
     cwebsockets.append(websocket)
     while True:
-        msg = await websocket.recv()
+        try:
+            msg = await websocket.recv()
+        except(ConnectionClosed):
+            print("Client Closed !")
+            del cwebsockets[cwebsockets.index(websocket)]
+            return 
         msg = json.loads(msg)
         command = msg['command']
         print(msg)     
@@ -104,8 +110,15 @@ async def handle_websocket(websocket, path):
         if command == "get_output":
             await get_ffmpeg_out(websocket, msg)
         #await websocket.send(json.dumps(msg))
-        
-start_server = websockets.serve(handle_websocket, "0.0.0.0", 8989)
 
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+async def bluecoat_server(stop):
+    async with websockets.serve(handle_websocket, "0.0.0.0", 8989): 
+        await stop
+
+loop = asyncio.get_event_loop()
+stop = loop.create_future()
+loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
+ 
+
+loop.run_until_complete(bluecoat_server(stop))
+loop.run_forever()
