@@ -32,7 +32,7 @@ class Status:
     BBB_URL = None
     BBB_MEETING_ID = None
     BBB_SECRET = None
-    BBB_STREAM_URL = None
+    BBB_STREAM_URLS = None
     BBB_MEETING_NAME = None
     process = None
     STREAM_COMMAND = 'xvfb-run -n 122 --server-args="-screen 0 1360x768x24" python3 stream.py -s {BBB_URL} -p {BBB_SECRET} -i {BBB_MEETING_ID} -t {BBB_STREAM_URL} -u BBBStreamer -m -sc 122 '
@@ -55,10 +55,10 @@ async def start_stream(websocket, msg):
         Status.BBB_URL = msg['bbb_url']
         Status.BBB_MEETING_ID = msg['bbb_meeting_id']
         Status.BBB_SECRET = msg['bbb_secret']
-        Status.BBB_STREAM_URL = msg['bbb_stream_url']
+        Status.BBB_STREAM_URLS = msg['bbb_stream_url']
         Status.BBB_MEETING_NAME = msg['bbb_meeting_name']
         
-        cmd = shlex.split(Status.STREAM_COMMAND.format(BBB_URL=Status.BBB_URL,BBB_SECRET=Status.BBB_SECRET,BBB_MEETING_ID=Status.BBB_MEETING_ID,BBB_STREAM_URL=Status.BBB_STREAM_URL))
+        cmd = shlex.split(Status.STREAM_COMMAND.format(BBB_URL=Status.BBB_URL,BBB_SECRET=Status.BBB_SECRET,BBB_MEETING_ID=Status.BBB_MEETING_ID,BBB_STREAM_URL='%%'.join(Status.BBB_STREAM_URLS)))
         print(cmd)
         Status.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=False, preexec_fn=os.setsid)
         Status.STATUS = "busy"
@@ -67,7 +67,7 @@ async def start_stream(websocket, msg):
 
 async def get_stream_details(websocket, msg):
     if Status.STATUS == "busy":
-        await websocket.send(json.dumps({"command": "get_details", "bbb_url": Status.BBB_URL, "bbb_meeting_id": Status.BBB_MEETING_ID, "bbb_stream_url": Status.BBB_STREAM_URL, "bbb_meeting_name":Status.BBB_MEETING_NAME}))
+        await websocket.send(json.dumps({"command": "get_details", "bbb_url": Status.BBB_URL, "bbb_meeting_id": Status.BBB_MEETING_ID, "bbb_stream_url": Status.BBB_STREAM_URLS, "bbb_meeting_name":Status.BBB_MEETING_NAME}))
     else:
         await get_status(websocket)
 
@@ -77,7 +77,7 @@ async def close_stream(websocket, msg):
         Status.BBB_URL = None
         Status.BBB_MEETING_ID = None
         Status.BBB_SECRET = None
-        Status.BBB_STREAM_URL = None
+        Status.BBB_STREAM_URLS = None
         kill(Status.process.pid)
     await send_status_to_all()
     

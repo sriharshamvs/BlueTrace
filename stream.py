@@ -85,7 +85,11 @@ def stream():
     sc = int(args.sc)
     if os.path.exists('ffmpeg.log'):
         os.remove('ffmpeg.log')
-    ffmpeg_stream = f'/usr/bin/ffmpeg  -f x11grab -s 1360x768 -draw_mouse 0 -i :{sc} -f pulse -ac 2 -i default -codec:v libx264 -pix_fmt yuv420p -preset veryfast  -g 60 -codec:a aac -b:a 128k -ar 44100 -af "highpass=f=200, lowpass=f=3000" -strict experimental -f flv "{args.target}"'
+    #ffmpeg_stream = f'/usr/bin/ffmpeg  -f x11grab -s 1360x768 -draw_mouse 0 -i :{sc} -f pulse -ac 2 -i default -codec:v libx264 -pix_fmt yuv420p -preset veryfast  -g 60 -codec:a aac -b:a 128k -ar 44100 -af "highpass=f=200, lowpass=f=3000" -strict experimental -f flv "{args.target}"'
+    target_streams = args.target.split("%%")
+    stream_target = '|'.join(["[f=flv]"+x for x in target_streams])
+    ffmpeg_stream = f'/usr/bin/ffmpeg  -f x11grab -s 1360x768 -draw_mouse 0 -i :{sc} -f pulse -ac 2 -i default -codec:v libx264 -pix_fmt yuv420p -preset veryfast  -g 60 -codec:a aac -b:a 128k -ar 44100 -af "highpass=f=200, lowpass=f=3000" -strict experimental -flags:v +global_header -f tee -map 0:v -map 1:a {stream_target}'
+    
     logging.info(ffmpeg_stream)
 #    ffmpeg_stream = 'ffmpeg -fflags +igndts -f x11grab -s 1280x720 -r 24 -draw_mouse 0 -i :%d -f alsa -i pulse -ac 2 -preset ultrafaset -pix_fmt yuv420p -s 1280x720 -c:a aac -b:a 160k -ar 44100 -threads 0 -f flv "%s"' % (122, args.target)
     with open('ffmpeg.log', 'w') as f:
